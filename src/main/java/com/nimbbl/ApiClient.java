@@ -33,36 +33,42 @@ class ApiClient {
 
 	public <T extends NimbblEntity> T get(String path, JSONObject requestObject, Class className)
 			throws NimbblException {
-		Response response = ApiUtils.getRequest(path, requestObject, auth);
+		Response response = ApiUtils.getRequest(Constants.BASEURL, path, requestObject, auth);
 		return processResponse(response, className);
 	}
 
 	public <T extends NimbblEntity> T post(String path, JSONObject requestObject, Class className)
 			throws NimbblException {
-		Response response = ApiUtils.postRequest(path, requestObject, auth);
+		Response response = ApiUtils.postRequest(Constants.BASEURL,path, requestObject, auth);
+		return processResponse(response, className);
+	}
+	// For Segment API Call
+	public <T extends NimbblEntity> T post(String path, JSONObject requestObject, Class className,boolean isSegment)
+			throws NimbblException {
+		Response response = ApiUtils.postRequest(Constants.SEGMENTURL,path, requestObject, auth);
 		return processResponse(response, className);
 	}
 
 	public <T extends NimbblEntity> T put(String path, JSONObject requestObject, Class className)
 			throws NimbblException {
-		Response response = ApiUtils.putRequest(path, requestObject, auth);
+		Response response = ApiUtils.putRequest(Constants.BASEURL,path, requestObject, auth);
 		return processResponse(response, className);
 	}
 
 	public <T extends NimbblEntity> T patch(String path, JSONObject requestObject, Class className)
 			throws NimbblException {
-		Response response = ApiUtils.patchRequest(path, requestObject, auth);
+		Response response = ApiUtils.patchRequest(Constants.BASEURL,path, requestObject, auth);
 		return processResponse(response, className);
 	}
 
 	public void delete(String path, JSONObject requestObject) throws NimbblException {
-		Response response = ApiUtils.deleteRequest(path, requestObject, auth);
+		Response response = ApiUtils.deleteRequest(Constants.BASEURL,path, requestObject, auth);
 		processDeleteResponse(response);
 	}
 
 	<T extends NimbblEntity> ArrayList<T> getCollection(String path, JSONObject requestObject, Class className)
 			throws NimbblException {
-		Response response = ApiUtils.getRequest(path, requestObject, auth);
+		Response response = ApiUtils.getRequest(Constants.BASEURL,path, requestObject, auth);
 		return processCollectionResponse(response, className);
 	}
 

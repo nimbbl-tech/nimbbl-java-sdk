@@ -1,10 +1,14 @@
 package com.nimbbl;
 
+import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -15,6 +19,9 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -63,9 +70,9 @@ class ApiUtils {
 		GET, POST, PUT, PATCH, DELETE
 	}
 
-	static Response postRequest(String path, JSONObject requestObject, String auth) throws NimbblException {
+	static Response postRequest(String base,String path, JSONObject requestObject, String auth) throws NimbblException {
 
-		HttpUrl.Builder builder = getBuilder(path);
+		HttpUrl.Builder builder = getBuilder(base,path);
 
 		String requestContent = requestObject == null ? "" : requestObject.toString();
 		RequestBody requestBody = RequestBody.create(Constants.MEDIA_TYPE_JSON, requestContent);
@@ -74,9 +81,9 @@ class ApiUtils {
 		return processRequest(request);
 	}
 
-	static Response putRequest(String path, JSONObject requestObject, String auth) throws NimbblException {
+	static Response putRequest(String base,String path, JSONObject requestObject, String auth) throws NimbblException {
 
-		HttpUrl.Builder builder = getBuilder(path);
+		HttpUrl.Builder builder = getBuilder(base,path);
 
 		String requestContent = requestObject == null ? "" : requestObject.toString();
 		RequestBody requestBody = RequestBody.create(Constants.MEDIA_TYPE_JSON, requestContent);
@@ -85,9 +92,9 @@ class ApiUtils {
 		return processRequest(request);
 	}
 
-	static Response patchRequest(String path, JSONObject requestObject, String auth) throws NimbblException {
+	static Response patchRequest(String base,String path, JSONObject requestObject, String auth) throws NimbblException {
 
-		HttpUrl.Builder builder = getBuilder(path);
+		HttpUrl.Builder builder = getBuilder(base,path);
 
 		String requestContent = requestObject == null ? "" : requestObject.toString();
 		RequestBody requestBody = RequestBody.create(Constants.MEDIA_TYPE_JSON, requestContent);
@@ -96,33 +103,36 @@ class ApiUtils {
 		return processRequest(request);
 	}
 
-	static Response getRequest(String path, JSONObject requestObject, String auth) throws NimbblException {
+	static Response getRequest(String base,String path, JSONObject requestObject, String auth) throws NimbblException {
 
-		HttpUrl.Builder builder = getBuilder(path);
+		HttpUrl.Builder builder = getBuilder(base,path);
 		addQueryParams(builder, requestObject);
 
 		Request request = createRequest(Method.GET.name(), builder.build().toString(), null, auth);
 		return processRequest(request);
 	}
 
-	static Response deleteRequest(String path, JSONObject requestObject, String auth) throws NimbblException {
+	static Response deleteRequest(String base,String path, JSONObject requestObject, String auth) throws NimbblException {
 
-		HttpUrl.Builder builder = getBuilder(path);
+		HttpUrl.Builder builder = getBuilder(base,path);
 		addQueryParams(builder, requestObject);
 
 		Request request = createRequest(Method.DELETE.name(), builder.build().toString(), null, auth);
 		return processRequest(request);
 	}
 
-	private static HttpUrl.Builder getBuilder(String path) {
-		return new HttpUrl.Builder().scheme(Constants.SCHEME).host(Constants.HOSTNAME).port(Constants.PORT)
-				.addPathSegment(Constants.API).addPathSegments(path);
+	private static HttpUrl.Builder getBuilder(String base, String path) {
+		return new HttpUrl.Builder().scheme(Constants.SCHEME).host(base).addPathSegments(path);
 	}
 
 	private static Request createRequest(String method, String url, RequestBody requestBody, String auth) {
-		Request.Builder builder = new Request.Builder().url(url).addHeader(Constants.AUTH_HEADER_KEY,
-				Constants.Bearer + auth);
-
+		
+		Request.Builder builder = new Request.Builder().url(url);
+		
+		if(auth!= null && auth.split(" ").length>1) {
+			builder.addHeader(Constants.AUTH_HEADER_KEY,
+					 auth);
+		}
 		for (Map.Entry<String, String> header : headers.entrySet()) {
 			builder.addHeader(header.getKey(), header.getValue());
 		}
@@ -165,13 +175,19 @@ class ApiUtils {
 		return trustManager;
 	}
 
-	public static String getOauth(String key, String secret) throws NimbblException, JSONException, IOException {
+	public static String getOauth(String key, String secret, SegmentAPI segmentApi) throws NimbblException, JSONException, IOException {
 		JSONObject json = new JSONObject();
 		json.put(Constants.ACCESS_KEY, key);
 		json.put(Constants.SECRET_KEY, secret);
-		Response res = postRequest(Constants.AUTHURL, json, null);
+		
+		segmentApi.generateJSONAuthReq(json);
+		
+		Response res = postRequest(Constants.BASEURL,Constants.AUTHURL, json, null);
 		String str = res.body().string();
 		JSONObject jsonRes = new JSONObject(str);
+		
+		segmentApi.generateJSONAuthRes(res.code(),key);
+		
 		return jsonRes.getString(Constants.TOKEN);
 	}
 
@@ -181,4 +197,26 @@ class ApiUtils {
 		obj.put(Constants.LIST_QUERYPARAM2, Constants.NO);
 		return obj;
 	}
+
+	public static String getBasicOauth() {
+		return Base64.getEncoder().encodeToString(Constants.SegmentUName.getBytes());
+	}
+	
+	public static String getProjectVersion() {
+	       	MavenXpp3Reader reader = new MavenXpp3Reader();
+	        Model model;
+			try {
+				model = reader.read(new FileReader("pom.xml"));
+				return model.getVersion();
+			} catch (IOException | XmlPullParserException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	        return "No Version Found";
+	    }
+	
+	public static String readFileAsString(String file)throws Exception
+    {
+        return new String(Files.readAllBytes(Paths.get(file)));
+    }
 }

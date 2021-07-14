@@ -5,8 +5,12 @@ import java.util.List;
 import org.json.JSONObject;
 
 public class NimbblTransactionAPI extends ApiClient {
-	public NimbblTransactionAPI(String auth) {
+
+	SegmentAPI segmentAPI;
+	
+	public NimbblTransactionAPI(String auth, SegmentAPI segmentApi) {
 		super(auth);
+		this.segmentAPI=segmentApi;
 	}
 
 	public NimbblTransaction create(JSONObject request) throws NimbblException {
