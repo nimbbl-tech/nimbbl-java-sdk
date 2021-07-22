@@ -16,20 +16,16 @@ public class NimbblTransactionAPI extends ApiClient {
 	public NimbblTransaction create(JSONObject request) throws NimbblException {
 		throw new NimbblException("Unsupported Method");
 	}
-
-	public List<NimbblTransaction> fetchAll() throws NimbblException {
-		return fetchAll(null);
-	}
 	
-	public List<NimbblTransaction> fetchAll(JSONObject request) throws NimbblException {
-		if (request == null) {
-			request = ApiUtils.preparefetchManyParams();
-		}
-		return getCollection(Constants.Transaction_LIST, request, NimbblTransaction.class);
+	public NimbblTransaction fetchAll(String orderId) throws NimbblException {
+		return get(String.format(Constants.Transaction_LIST, orderId),null, NimbblTransaction.class);
 	}
 
 	public NimbblTransaction fetch(String id) throws NimbblException {
-		return get(String.format(Constants.Transaction_GET, id), null, NimbblTransaction.class);
+		this.segmentAPI.generateTransactionReq(id);
+		NimbblTransaction nimbblEntity = get(String.format(Constants.Transaction_GET, id), null, NimbblTransaction.class);
+		this.segmentAPI.generateTransactionRes(nimbblEntity.getJsonModel());
+		return nimbblEntity;
 	}
 
 	public NimbblTransaction edit(JSONObject request) throws NimbblException {

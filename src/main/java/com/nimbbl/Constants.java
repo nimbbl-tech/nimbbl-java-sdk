@@ -29,8 +29,8 @@ public class Constants {
 	public static final String USER_LIST = "api/users/many";
 	
 	public static final String Transaction_CREATE = "api/transactions/create";
-	public static final String Transaction_GET = "api/transactions/one/%s";
-	public static final String Transaction_LIST = "api/transactions/many?f=%sandpt=no";
+	public static final String Transaction_GET = "api/v2/fetch-transaction/%s";
+	public static final String Transaction_LIST = "api/v2/order/fetch-transactions/%s";
 	
 	public static final String ACCESS_KEY = "access_key";
 	public static final String SECRET_KEY = "access_secret";
@@ -64,5 +64,14 @@ public class Constants {
 	public static final String ORDER_CREATED = "Order Received";
 	public static final String AUTH_REQ = "Authorization Submitted";
 	public static final String AUTH_RES = "Authorization Received";
+	public static final String NIMBBL_KEY = "x-nimbbl-key";
+	public static final String AUTH_PRINCIPAL = "auth_principal";
+	public static final String SUB_MERCHENT_KEY = "sub_merchant_id";
 	
+	public static final String TRANS_REQ = "Enquiry Submitted";
+	public static final String TRANS_RES = "Enquiry Recieved";
+	public static final String TRANS_ID = "Transaction id";
+	public static final String TRANS_STATUS ="status";
+	public static final String ANNONYMOUS_ID = "anonymousId";
+	public static final String IDENTIFY = "Identify";
 }

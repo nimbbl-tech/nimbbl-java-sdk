@@ -19,6 +19,7 @@ public class NimbblOrderAPI extends ApiClient {
 		else {
 		segmentAPI.generateJSONOrderReq(request);
 		NimbblOrder res = post(Constants.ORDER_CREATE,request,NimbblOrder.class);
+		segmentAPI.userId=res.getJsonModel().getString("userId");
 		segmentAPI.generateJSONOrderRes(res.getJsonModel());
 		return res;
 		

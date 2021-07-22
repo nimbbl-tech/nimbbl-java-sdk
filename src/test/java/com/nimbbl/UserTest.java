@@ -13,8 +13,8 @@ public class UserTest {
 	@Test
 	public void getOneByUserIdTest() throws NimbblException, JSONException, IOException {
 		NimbblAPI api= new NimbblAPI("{access_key}", "{secret_key}");
-		NimbblUser user= api.userApi.fetch("user_MwvMYXEABm1Oevry");
-		assertEquals(user.getJsonModel().get("user_id"), "user_MwvMYXEABm1Oevry");
+		NimbblUser user= api.userApi.fetch("{user_id}");
+		assertEquals(user.getJsonModel().get("user_id"), "{user_id}");
 	}
 	
 	@Test

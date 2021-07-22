@@ -12,7 +12,9 @@ import okhttp3.Response;
 class ApiClient {
 
 	String auth;
-
+		
+	private static int merchentId;
+	
 	private final String NimbblEntity = "NimbblEntity";
 
 	private final String COLLECTION = "collection";
@@ -30,6 +32,15 @@ class ApiClient {
 	ApiClient(String auth) {
 		this.auth = auth;
 	}
+
+	public static void setMerchentId(int id) {
+		merchentId=id;
+	}
+	
+	public static int getMerchentId() {
+		return merchentId;
+	}
+	
 
 	public <T extends NimbblEntity> T get(String path, JSONObject requestObject, Class className)
 			throws NimbblException {
@@ -71,6 +82,7 @@ class ApiClient {
 		Response response = ApiUtils.getRequest(Constants.BASEURL,path, requestObject, auth);
 		return processCollectionResponse(response, className);
 	}
+	
 
 	private <T extends NimbblEntity> T parseResponse(JSONObject jsonObject, Class className) throws NimbblException {
 		if (jsonObject != null) {

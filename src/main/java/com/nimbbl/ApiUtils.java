@@ -2,10 +2,12 @@ package com.nimbbl;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
@@ -36,9 +38,11 @@ class ApiUtils {
 
 	private static OkHttpClient client;
 	private static Map<String, String> headers = new HashMap<String, String>();
-
+	
 	private static String version = null;
 
+	public static String nimbbl_key=null;
+	
 	static void createHttpClientInstance(boolean enableLogging) throws NimbblException {
 		if (client == null) {
 			HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
@@ -133,6 +137,10 @@ class ApiUtils {
 			builder.addHeader(Constants.AUTH_HEADER_KEY,
 					 auth);
 		}
+		if(nimbbl_key !=null && !nimbbl_key.isEmpty()) {
+			builder.addHeader(Constants.NIMBBL_KEY,
+					 nimbbl_key);
+		}
 		for (Map.Entry<String, String> header : headers.entrySet()) {
 			builder.addHeader(header.getKey(), header.getValue());
 		}
@@ -179,17 +187,52 @@ class ApiUtils {
 		JSONObject json = new JSONObject();
 		json.put(Constants.ACCESS_KEY, key);
 		json.put(Constants.SECRET_KEY, secret);
-		
+		segmentApi.generateIdentify();
 		segmentApi.generateJSONAuthReq(json);
 		
 		Response res = postRequest(Constants.BASEURL,Constants.AUTHURL, json, null);
 		String str = res.body().string();
 		JSONObject jsonRes = new JSONObject(str);
-		
+		ApiClient.setMerchentId(jsonRes.getJSONObject("auth_principal").getInt("sub_merchant_id"));
 		segmentApi.generateJSONAuthRes(res.code(),key);
-		
+		nimbbl_key=generateNimbblKeyHeader(jsonRes);
 		return jsonRes.getString(Constants.TOKEN);
 	}
+
+	private static String generateNimbblKeyHeader( JSONObject jsonRes) {
+		String md5=getMd5(jsonRes.getString(Constants.TOKEN));
+		JSONObject authPrincipal=jsonRes.getJSONObject(Constants.AUTH_PRINCIPAL);
+		int merchentKey=authPrincipal.getInt(Constants.SUB_MERCHENT_KEY);
+		return merchentKey+"-"+md5;
+	}
+	
+	public static String getMd5(String input)
+    {
+        try {
+  
+            // Static getInstance method is called with hashing MD5
+            MessageDigest md = MessageDigest.getInstance("MD5");
+  
+            // digest() method is called to calculate message digest
+            //  of an input digest() return array of byte
+            byte[] messageDigest = md.digest(input.getBytes());
+  
+            // Convert byte array into signum representation
+            BigInteger no = new BigInteger(1, messageDigest);
+  
+            // Convert message digest into hex value
+            String hashtext = no.toString(16);
+            while (hashtext.length() < 32) {
+                hashtext = "0" + hashtext;
+            }
+            return hashtext;
+        } 
+  
+        // For specifying wrong message digest algorithms
+        catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 	public static JSONObject preparefetchManyParams() {
 		JSONObject obj = new JSONObject();
