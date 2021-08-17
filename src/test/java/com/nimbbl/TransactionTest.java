@@ -12,27 +12,27 @@ public class TransactionTest {
 
 	@Test
 	public void getOneTest() throws NimbblException, JSONException, IOException {
-		NimbblAPI api= new NimbblAPI("access_key_1MwvMkKkweorz0ry", "access_secret_81x7ByYkRpB4g05N");
-		NimbblTransaction trans= api.transactionApi.fetch("order_4JB02okpV922r7yN-20210617102109");
-		assertEquals(trans.getJsonModel().get("transaction_id"), "order_4JB02okpV922r7yN-20210617102109");
+		NimbblAPI api= new NimbblAPI("{access_key}", "{secret_key}");
+		NimbblTransaction trans= api.transactionApi.fetch("{transaction_id}");
+		assertEquals(trans.getJsonModel().get("transaction_id"), "{transaction_id}");
 	}
 	
 	@Test
-	public void getAllTest() throws NimbblException, JSONException, IOException {
-		NimbblAPI api= new NimbblAPI("access_key_1MwvMkKkweorz0ry", "access_secret_81x7ByYkRpB4g05N");
-//		List<NimbblTransaction> trans= api.transactionApi.fetchAll();
-//		assertEquals(trans.size(), 0);
+	public void getManyTest() throws NimbblException, JSONException, IOException {
+		NimbblAPI api= new NimbblAPI("{access_key}", "{secret_key}");
+		NimbblTransaction trans= api.transactionApi.fetchAll("{order_id}");
+		assertEquals(trans.getJsonModel().getJSONArray("transactions").length(), 3);
 	}
 	
 	@Test(expected = NimbblException.class)
 	public void createTest() throws NimbblException, JSONException, IOException {
-		NimbblAPI api= new NimbblAPI("access_key_1MwvMkKkweorz0ry", "access_secret_81x7ByYkRpB4g05N");
+		NimbblAPI api= new NimbblAPI("{access_key}", "{secret_key}");
 		api.transactionApi.create(null);
 	}
 	
 	@Test(expected = NimbblException.class)
 	public void editTest() throws NimbblException, JSONException, IOException {
-		NimbblAPI api= new NimbblAPI("access_key_1MwvMkKkweorz0ry", "access_secret_81x7ByYkRpB4g05N");
+		NimbblAPI api= new NimbblAPI("{access_key}", "{secret_key}");
 		api.transactionApi.edit(null);
 	}
 }

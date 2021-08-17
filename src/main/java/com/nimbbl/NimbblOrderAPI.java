@@ -5,13 +5,25 @@ import java.util.List;
 import org.json.JSONObject;
 
 public class NimbblOrderAPI extends ApiClient {
+	
+	SegmentAPI segmentAPI;
 
-	NimbblOrderAPI(String auth) {
+	NimbblOrderAPI(String auth, SegmentAPI segmentApi) {
 		super(auth);
+		this.segmentAPI=segmentApi;
 	}
 
 	public NimbblOrder create(JSONObject request) throws NimbblException {
-		throw new NimbblException("Unsupported Method");
+		if (request ==null)
+			throw new NimbblException("Request Object is Empty");
+		else {
+		segmentAPI.generateJSONOrderReq(request);
+		NimbblOrder res = post(Constants.ORDER_CREATE,request,NimbblOrder.class);
+		segmentAPI.userId=res.getJsonModel().getString("userId");
+		segmentAPI.generateJSONOrderRes(res.getJsonModel());
+		return res;
+		
+		}
 	}
 	
 	public List<NimbblOrder> fetchAll() throws NimbblException {

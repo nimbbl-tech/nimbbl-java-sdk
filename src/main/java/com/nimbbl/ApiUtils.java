@@ -1,10 +1,16 @@
 package com.nimbbl;
 
+import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -15,6 +21,9 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -29,9 +38,11 @@ class ApiUtils {
 
 	private static OkHttpClient client;
 	private static Map<String, String> headers = new HashMap<String, String>();
-
+	
 	private static String version = null;
 
+	public static String nimbbl_key=null;
+	
 	static void createHttpClientInstance(boolean enableLogging) throws NimbblException {
 		if (client == null) {
 			HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
@@ -63,9 +74,9 @@ class ApiUtils {
 		GET, POST, PUT, PATCH, DELETE
 	}
 
-	static Response postRequest(String path, JSONObject requestObject, String auth) throws NimbblException {
+	static Response postRequest(String base,String path, JSONObject requestObject, String auth) throws NimbblException {
 
-		HttpUrl.Builder builder = getBuilder(path);
+		HttpUrl.Builder builder = getBuilder(base,path);
 
 		String requestContent = requestObject == null ? "" : requestObject.toString();
 		RequestBody requestBody = RequestBody.create(Constants.MEDIA_TYPE_JSON, requestContent);
@@ -74,9 +85,9 @@ class ApiUtils {
 		return processRequest(request);
 	}
 
-	static Response putRequest(String path, JSONObject requestObject, String auth) throws NimbblException {
+	static Response putRequest(String base,String path, JSONObject requestObject, String auth) throws NimbblException {
 
-		HttpUrl.Builder builder = getBuilder(path);
+		HttpUrl.Builder builder = getBuilder(base,path);
 
 		String requestContent = requestObject == null ? "" : requestObject.toString();
 		RequestBody requestBody = RequestBody.create(Constants.MEDIA_TYPE_JSON, requestContent);
@@ -85,9 +96,9 @@ class ApiUtils {
 		return processRequest(request);
 	}
 
-	static Response patchRequest(String path, JSONObject requestObject, String auth) throws NimbblException {
+	static Response patchRequest(String base,String path, JSONObject requestObject, String auth) throws NimbblException {
 
-		HttpUrl.Builder builder = getBuilder(path);
+		HttpUrl.Builder builder = getBuilder(base,path);
 
 		String requestContent = requestObject == null ? "" : requestObject.toString();
 		RequestBody requestBody = RequestBody.create(Constants.MEDIA_TYPE_JSON, requestContent);
@@ -96,33 +107,40 @@ class ApiUtils {
 		return processRequest(request);
 	}
 
-	static Response getRequest(String path, JSONObject requestObject, String auth) throws NimbblException {
+	static Response getRequest(String base,String path, JSONObject requestObject, String auth) throws NimbblException {
 
-		HttpUrl.Builder builder = getBuilder(path);
+		HttpUrl.Builder builder = getBuilder(base,path);
 		addQueryParams(builder, requestObject);
 
 		Request request = createRequest(Method.GET.name(), builder.build().toString(), null, auth);
 		return processRequest(request);
 	}
 
-	static Response deleteRequest(String path, JSONObject requestObject, String auth) throws NimbblException {
+	static Response deleteRequest(String base,String path, JSONObject requestObject, String auth) throws NimbblException {
 
-		HttpUrl.Builder builder = getBuilder(path);
+		HttpUrl.Builder builder = getBuilder(base,path);
 		addQueryParams(builder, requestObject);
 
 		Request request = createRequest(Method.DELETE.name(), builder.build().toString(), null, auth);
 		return processRequest(request);
 	}
 
-	private static HttpUrl.Builder getBuilder(String path) {
-		return new HttpUrl.Builder().scheme(Constants.SCHEME).host(Constants.HOSTNAME).port(Constants.PORT)
-				.addPathSegment(Constants.API).addPathSegments(path);
+	private static HttpUrl.Builder getBuilder(String base, String path) {
+		return new HttpUrl.Builder().scheme(Constants.SCHEME).host(base).addPathSegments(path);
 	}
 
 	private static Request createRequest(String method, String url, RequestBody requestBody, String auth) {
-		Request.Builder builder = new Request.Builder().url(url).addHeader(Constants.AUTH_HEADER_KEY,
-				Constants.Bearer + auth);
-
+		
+		Request.Builder builder = new Request.Builder().url(url);
+		
+		if(auth!= null && auth.split(" ").length>1) {
+			builder.addHeader(Constants.AUTH_HEADER_KEY,
+					 auth);
+		}
+		if(nimbbl_key !=null && !nimbbl_key.isEmpty()) {
+			builder.addHeader(Constants.NIMBBL_KEY,
+					 nimbbl_key);
+		}
 		for (Map.Entry<String, String> header : headers.entrySet()) {
 			builder.addHeader(header.getKey(), header.getValue());
 		}
@@ -165,15 +183,56 @@ class ApiUtils {
 		return trustManager;
 	}
 
-	public static String getOauth(String key, String secret) throws NimbblException, JSONException, IOException {
+	public static String getOauth(String key, String secret, SegmentAPI segmentApi) throws NimbblException, JSONException, IOException {
 		JSONObject json = new JSONObject();
 		json.put(Constants.ACCESS_KEY, key);
 		json.put(Constants.SECRET_KEY, secret);
-		Response res = postRequest(Constants.AUTHURL, json, null);
+		segmentApi.generateIdentify();
+		segmentApi.generateJSONAuthReq(json);
+		
+		Response res = postRequest(Constants.BASEURL,Constants.AUTHURL, json, null);
 		String str = res.body().string();
 		JSONObject jsonRes = new JSONObject(str);
+		ApiClient.setMerchentId(jsonRes.getJSONObject("auth_principal").getInt("sub_merchant_id"));
+		segmentApi.generateJSONAuthRes(res.code(),key);
+		nimbbl_key=generateNimbblKeyHeader(jsonRes);
 		return jsonRes.getString(Constants.TOKEN);
 	}
+
+	private static String generateNimbblKeyHeader( JSONObject jsonRes) {
+		String md5=getMd5(jsonRes.getString(Constants.TOKEN));
+		JSONObject authPrincipal=jsonRes.getJSONObject(Constants.AUTH_PRINCIPAL);
+		int merchentKey=authPrincipal.getInt(Constants.SUB_MERCHENT_KEY);
+		return merchentKey+"-"+md5;
+	}
+	
+	public static String getMd5(String input)
+    {
+        try {
+  
+            // Static getInstance method is called with hashing MD5
+            MessageDigest md = MessageDigest.getInstance("MD5");
+  
+            // digest() method is called to calculate message digest
+            //  of an input digest() return array of byte
+            byte[] messageDigest = md.digest(input.getBytes());
+  
+            // Convert byte array into signum representation
+            BigInteger no = new BigInteger(1, messageDigest);
+  
+            // Convert message digest into hex value
+            String hashtext = no.toString(16);
+            while (hashtext.length() < 32) {
+                hashtext = "0" + hashtext;
+            }
+            return hashtext;
+        } 
+  
+        // For specifying wrong message digest algorithms
+        catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 	public static JSONObject preparefetchManyParams() {
 		JSONObject obj = new JSONObject();
@@ -181,4 +240,26 @@ class ApiUtils {
 		obj.put(Constants.LIST_QUERYPARAM2, Constants.NO);
 		return obj;
 	}
+
+	public static String getBasicOauth() {
+		return Base64.getEncoder().encodeToString(Constants.SegmentUName.getBytes());
+	}
+	
+	public static String getProjectVersion() {
+	       	MavenXpp3Reader reader = new MavenXpp3Reader();
+	        Model model;
+			try {
+				model = reader.read(new FileReader("pom.xml"));
+				return model.getVersion();
+			} catch (IOException | XmlPullParserException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	        return "No Version Found";
+	    }
+	
+	public static String readFileAsString(String file)throws Exception
+    {
+        return new String(Files.readAllBytes(Paths.get(file)));
+    }
 }
