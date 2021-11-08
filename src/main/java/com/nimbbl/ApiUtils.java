@@ -3,8 +3,10 @@ package com.nimbbl;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.MessageDigest;
@@ -17,10 +19,13 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -36,6 +41,7 @@ import okhttp3.logging.HttpLoggingInterceptor;
 
 class ApiUtils {
 
+	
 	private static OkHttpClient client;
 	private static Map<String, String> headers = new HashMap<String, String>();
 	
@@ -261,5 +267,50 @@ class ApiUtils {
 	public static String readFileAsString(String file)throws Exception
     {
         return new String(Files.readAllBytes(Paths.get(file)));
+    }
+	
+	
+    public static String hashAndGetHexStringValue(String key, String message, String algorithm) throws NoSuchAlgorithmException, InvalidKeyException {
+        byte[] hash = hash(key, message, algorithm);
+        StringBuilder hashVal = new StringBuilder();
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xFF & b);
+            if (hex.length() == 1) {
+                hashVal.append('0');
+            }
+            hashVal.append(hex);
+        }
+        return hashVal.toString();
+    }
+    
+    public static byte[] hash(String key, String message, String algorithm) throws NoSuchAlgorithmException, InvalidKeyException {
+        byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+
+        SecretKeySpec secretKey = new SecretKeySpec(keyBytes, algorithm);
+
+        Mac hmac = Mac.getInstance(algorithm);
+        hmac.init(secretKey);
+        return hmac.doFinal(messageBytes);
+    }
+    
+    static boolean verifySignature(JSONObject jsonObj,String secret) throws InvalidKeyException, NoSuchAlgorithmException{
+    	String nimbbl_signature = jsonObj.getString("nimbbl_signature");
+    	String nimbbl_transaction_id = jsonObj.getString("nimbbl_transaction_id");
+    	float order_amount = jsonObj.getFloat("order_amount");
+    	String order_amountConveerted = String.format("%.2f", order_amount);
+    	String order_currency = jsonObj.getString("order_currency");
+    	String merchant_order_id = jsonObj.getString("merchant_order_id");
+        String payload = merchant_order_id + "|" + nimbbl_transaction_id+"|"+order_amountConveerted  +"|"+order_currency ;
+        if (merchant_order_id != null && !merchant_order_id.isEmpty()) {
+        System.out.println(payload);
+        String messageDigest =hashAndGetHexStringValue(secret, payload, "HmacSHA256");
+        System.out.println(messageDigest);
+        return messageDigest.equals(nimbbl_signature);
+        }
+        else {
+        	throw new JSONException("order id must be presnt");
+        }
+        
     }
 }
