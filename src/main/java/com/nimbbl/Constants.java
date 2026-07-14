@@ -16,6 +16,11 @@ public class Constants {
 	public static final String AUTHURL = "api/v2/generate-token";
 	
 	public static final String ORDER_CREATE = "api/v2/create-order";
+
+	public static final String ORDER_SOURCE_KEY = "order_source";
+	public static final String ORDER_SOURCE_VERSION_KEY = "order_source_version";
+	public static final String ORDER_SOURCE = "java-sdk";
+	public static final String ORDER_SOURCE_VERSION = "0.0.0";
 	public static final String ORDER_GET = "api/v2/get-order/%s";
 	public static final String ORDER_LIST = "api/orders/many";
 	
