@@ -20,7 +20,8 @@ public class Constants {
 	public static final String ORDER_SOURCE_KEY = "order_source";
 	public static final String ORDER_SOURCE_VERSION_KEY = "order_source_version";
 	public static final String ORDER_SOURCE = "java-sdk";
-	public static final String ORDER_SOURCE_VERSION = "0.0.0";
+	// Keep in sync with <version> in pom.xml on release.
+	public static final String ORDER_SOURCE_VERSION = "1.0.0";
 	public static final String ORDER_GET = "api/v2/get-order/%s";
 	public static final String ORDER_LIST = "api/orders/many";
 	
