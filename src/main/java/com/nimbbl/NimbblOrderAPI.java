@@ -17,6 +17,11 @@ public class NimbblOrderAPI extends ApiClient {
 		if (request ==null)
 			throw new NimbblException("Request Object is Empty");
 		else {
+		// Copy so the SDK-added fields below don't mutate the caller's JSONObject.
+		request = new JSONObject(request.toString());
+		// order_source is fixed by the creating SDK (anti-spoof); a caller cannot override it.
+		request.put(Constants.ORDER_SOURCE_KEY, Constants.ORDER_SOURCE);
+		request.put(Constants.ORDER_SOURCE_VERSION_KEY, Constants.ORDER_SOURCE_VERSION);
 		segmentAPI.generateJSONOrderReq(request);
 		NimbblOrder res = post(Constants.ORDER_CREATE,request,NimbblOrder.class);
 		segmentAPI.userId=res.getJsonModel().getString("userId");
